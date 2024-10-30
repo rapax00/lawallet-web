@@ -12,6 +12,7 @@ import {
   getTagValue,
   removeLightningStandard,
   useConfig,
+  useIdentity,
 } from '@lawallet/react';
 import { TransferTypes } from '@lawallet/react/types';
 import { Button, Flex, Text } from '@lawallet/ui';
@@ -22,9 +23,11 @@ import { useState } from 'react';
 
 export default function Page() {
   const [urlScanned, setUrlScanned] = useState<string>('');
+  const [urlClaimBadge, setUrlClaimBadge] = useState<string>('');
   const t = useTranslations();
   const router = useRouter();
   const config = useConfig();
+  const identity = useIdentity();
 
   const processExternalURL = (str: string) => {
     const url = new URL(str);
@@ -49,18 +52,31 @@ export default function Page() {
     }
   };
 
-  const handleScanURL = (str: string) => {
+  const handleScanURL = async (str: string) => {
     const url = new URL(str);
     const originURL = window.location.origin;
     const eventParameter = url.searchParams.get('event');
     const cardParameter = url.searchParams.get('c');
 
+    console.log('url', url);
+
+    // Add new card
     if (eventParameter) {
       // TODO: check federation
       router.push(`/settings/cards/donation?event=${eventParameter}`);
     } else if (cardParameter) {
       router.push(`/settings/cards?c=${cardParameter}`);
       return;
+    }
+    // Claim Badge
+    else if (url.origin.startsWith('https://claimbadge.')) {
+      // 'https://claimbadge.lacrypta.ar/claim?definitionid=000&nonce000'
+
+      const definitionId = url.searchParams.get('definitionid');
+
+      if (definitionId && identity.username) {
+        setUrlClaimBadge(str);
+      }
     } else {
       if (url.origin.startsWith(originURL)) {
         const pathname: string = url.href.replace(originURL, '');
@@ -94,6 +110,34 @@ export default function Page() {
     }
   };
 
+  const handleClaimBadge = async (str: string) => {
+    const url = new URL(str);
+    const definitionId = url.searchParams.get('definitionid');
+
+    if (identity.username && definitionId) {
+      try {
+        const response = await fetch(`${url.origin}/api/badge/request`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            nip05: identity.username + '@lawallet.ar',
+            badgeId: definitionId,
+          }),
+        });
+
+        const data = await response.json();
+
+        console.log(data);
+
+        return;
+      } catch (error: any) {
+        console.log('error', error);
+      }
+    }
+  };
+
   return (
     <>
       <Navbar showBackPage={true} title={t('SCAN_QR')} />
@@ -117,6 +161,19 @@ export default function Page() {
           </Flex>
           <Flex>
             <Button variant="borderless" onClick={() => setUrlScanned('')}>
+              {t('CANCEL')}
+            </Button>
+          </Flex>
+        </Flex>
+      </Modal>
+
+      <Modal title={t('URL_BADGE_SCANNED_TITLE')} isOpen={Boolean(urlClaimBadge.length)} onClose={() => null}>
+        <Flex direction="column" gap={4}>
+          <Flex>
+            <Button onClick={() => handleClaimBadge(urlClaimBadge)}>{t('CLAIM_BADGE')}</Button>
+          </Flex>
+          <Flex>
+            <Button variant="borderless" onClick={() => setUrlClaimBadge('')}>
               {t('CANCEL')}
             </Button>
           </Flex>

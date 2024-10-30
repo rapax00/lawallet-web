@@ -210,8 +210,6 @@
   "PLUGINS_NOT_ENABLED": "Plugins not enabled",
   "SIGN_UP_NOT_ENABLED": "Sign up not enabled",
   "FREE": "Free",
-  "EDIT": "Edit",
-  "EDIT_PROFILE": "Edit profile",
-  "WEBSITE": "Website",
-  "MY_PROFILE": "My profile"
+  "URL_BADGE_SCANNED_TITLE": "Claim Badge",
+  "CLAIM_BADGE": "Claim"
 }

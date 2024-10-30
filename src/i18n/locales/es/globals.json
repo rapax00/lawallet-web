@@ -145,7 +145,7 @@
   "ACCOUNT": "Cuenta",
   "MY_CARDS": "Mis tarjetas",
   "ADD_TO_ALBY": "Agregar a Alby extension",
-  "ANONYMOUS": "Anónimo",
+  "ANONYMOUS": "Anonimo",
   "PRESS_TO_COPY": "Presioname para copiar!",
   "MESSAGE": "Mensaje",
   "OPTIONAL": "Opcional",
@@ -210,8 +210,6 @@
   "PLUGINS_NOT_ENABLED": "Extensiones deshabilitadas",
   "SIGN_UP_NOT_ENABLED": "Registro deshabilitado",
   "FREE": "Gratis",
-  "EDIT": "Editar",
-  "EDIT_PROFILE": "Editar perfil",
-  "WEBSITE": "Sitio web",
-  "MY_PROFILE": "Mi perfil"
+  "URL_BADGE_SCANNED_TITLE": "Reclamar Badge",
+  "CLAIM_BADGE": "Reclamar"
 }
