@@ -10,13 +10,16 @@ import {
   detectTransferType,
   getMultipleTagsValues,
   getTagValue,
+  nowInSeconds,
   removeLightningStandard,
   useConfig,
   useIdentity,
+  useNostr,
 } from '@lawallet/react';
+import { broadcastEvent } from '@lawallet/react/actions';
 import { TransferTypes } from '@lawallet/react/types';
 import { Button, Flex, Text } from '@lawallet/ui';
-import { NostrEvent } from '@nostr-dev-kit/ndk';
+import { NDKEvent, NostrEvent } from '@nostr-dev-kit/ndk';
 import { useTranslations } from 'next-intl';
 import NimiqQrScanner from 'qr-scanner';
 import { useState } from 'react';
@@ -28,6 +31,8 @@ export default function Page() {
   const router = useRouter();
   const config = useConfig();
   const identity = useIdentity();
+
+  const { ndk } = useNostr();
 
   const processExternalURL = (str: string) => {
     const url = new URL(str);
@@ -57,6 +62,7 @@ export default function Page() {
     const originURL = window.location.origin;
     const eventParameter = url.searchParams.get('event');
     const cardParameter = url.searchParams.get('c');
+    const badgeParameter = url.searchParams.get('definitionid');
 
     console.log('url', url);
 
@@ -69,14 +75,9 @@ export default function Page() {
       return;
     }
     // Claim Badge
-    else if (url.origin.startsWith('https://claimbadge.')) {
-      // 'https://claimbadge.lacrypta.ar/claim?definitionid=000&nonce000'
-
-      const definitionId = url.searchParams.get('definitionid');
-
-      if (definitionId && identity.username) {
-        setUrlClaimBadge(str);
-      }
+    else if (badgeParameter) {
+      setUrlClaimBadge(str);
+      return;
     } else {
       if (url.origin.startsWith(originURL)) {
         const pathname: string = url.href.replace(originURL, '');
@@ -114,7 +115,7 @@ export default function Page() {
     const url = new URL(str);
     const definitionId = url.searchParams.get('definitionid');
 
-    if (identity.username && definitionId) {
+    if (identity.pubkey && definitionId) {
       try {
         const response = await fetch(`${url.origin}/api/badge/request`, {
           method: 'POST',
@@ -122,17 +123,44 @@ export default function Page() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            nip05: identity.username + '@lawallet.ar',
+            pubkey: identity.pubkey,
             badgeId: definitionId,
           }),
         });
 
         const data = await response.json();
+        const badgeAward = JSON.parse(data.message);
+        const badgeAddresses = getMultipleTagsValues(badgeAward.tags, 'a');
+        const badgeAddress = badgeAddresses.find((address) => address.includes(identity.pubkey));
 
-        console.log(data);
+        const badgesEvent = await ndk.fetchEvent({
+          kinds: [30008],
+          authors: [identity.pubkey],
+          '#d': ['profile_badges'],
+        });
+
+        if (!badgeAddress) throw new Error('Badge Address not found');
+
+        const newBadge_Tags = [
+          ['a', badgeAddress],
+          ['e', badgeAward.id],
+        ];
+
+        const new_badgeEvent: NDKEvent = new NDKEvent(ndk, {
+          kind: 30008,
+          pubkey: identity.pubkey,
+          created_at: nowInSeconds(),
+          content: '',
+          tags: badgesEvent ? [...badgesEvent.tags, ...newBadge_Tags] : [['d', 'profile_badges'], ...newBadge_Tags],
+        });
+
+        await new_badgeEvent.sign();
+        const signedEvent = await new_badgeEvent.toNostrEvent();
+
+        broadcastEvent(signedEvent, config);
 
         return;
-      } catch (error: any) {
+      } catch (error) {
         console.log('error', error);
       }
     }
