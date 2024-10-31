@@ -129,9 +129,15 @@ export default function Page() {
         });
 
         const data = await response.json();
-        const badgeAward = JSON.parse(data.message);
+        console.log('data', data); // debug
+        const badgeAward = data.message;
         const badgeAddresses = getMultipleTagsValues(badgeAward.tags, 'a');
-        const badgeAddress = badgeAddresses.find((address) => address.includes(identity.pubkey));
+        console.log('1 badgeAddresses', badgeAddresses); // debug
+        const badgeAddress = badgeAddresses.find((address) => {
+          console.log('2 address', address); // debug
+          address.includes(identity.pubkey);
+        }); // rompe
+        console.log('3 badgeAddress', badgeAddress); // debug
 
         const badgesEvent = await ndk.fetchEvent({
           kinds: [30008],
@@ -158,6 +164,7 @@ export default function Page() {
         const signedEvent = await new_badgeEvent.toNostrEvent();
 
         broadcastEvent(signedEvent, config);
+        setUrlClaimBadge('');
 
         return;
       } catch (error) {
